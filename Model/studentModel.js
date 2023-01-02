@@ -14,4 +14,16 @@ const studentSchema = new mongoose.Schema(
     },
 )
 
+
+//For AutoPopulate use hooks
+// function autoPopulateref(next) {
+//     this.populate('ref');
+//     next();
+// }
+
+
+// studentSchema
+//     .pre('findOne', autoPopulateref)
+//     .pre('find', autoPopulateref);
+
 module.exports = mongoose.model("student", studentSchema)
