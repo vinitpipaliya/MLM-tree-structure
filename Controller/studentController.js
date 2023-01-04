@@ -121,12 +121,16 @@ exports.getData = async (req, res) => {
             }
         }
         var list = []
-        for (let i of docs) {
-            if (mainList[0]._id.equals(i.ref)) {
-                list.push(i)
+        for (let j of mainList) {
+            list = []
+            for (let i of docs) {
+                if (j._id.equals(i.ref)) {
+                    list.push(i)
+                }
             }
+            j['newKey'] = list
+            recursion(list)
         }
-        mainList[0]['newKey'] = list
         // var mainList2 = list
         // for (let j of mainList2) {
         //     list = []
@@ -137,7 +141,7 @@ exports.getData = async (req, res) => {
         //         j['newKey'] = list
         //     }
         // }
-        recursion(list)
+
 
         function recursion(list) {
             var mainList2 = list
@@ -152,7 +156,6 @@ exports.getData = async (req, res) => {
                 }
             }
         }
-
         return res.status(200).json({
             DATA: mainList
         })
@@ -161,6 +164,60 @@ exports.getData = async (req, res) => {
         console.log(err)
         return res.status(400).json({
             Problem: "Problem " + err
+        })
+    }
+}
+
+exports.getDataByQuary = (req, res) => {
+    try {
+        var mainList = studentModel.aggregate([
+            {
+                $lookup: {
+                    from: "students",
+                    localField: "_id",
+                    foreignField: "ref",
+                    as: "students",
+                    pipeline: []
+                }
+            },
+            {
+                $project: {
+                    name: 1,
+                    students: 1
+                }
+            },
+        ]).lean(true).exec()
+        for (let i of mainList) {
+            recursive(i)
+        }
+        function recursive(list) {
+            list = studentModel.aggregate([
+                {
+                    $lookup: {
+                        from: "students",
+                        localField: "list._id",
+                        foreignField: "ref",
+                        as: "students"
+                    }
+                }
+            ]).exec()
+        }
+        // .exec((err, data) => {
+        //     if (err) {
+        //         return res.status(400).json({
+        //             err: "Not able to aggeregate. " + err
+        //         })
+        //     }
+        //     else {
+        //         return res.status(200).send({
+        //             DATA: data
+        //         })
+        //     }
+        // })
+    }
+    catch (err) {
+        return res.status(400).json({
+            err: "Problem :" + err
         })
     }
 }

@@ -11,8 +11,8 @@ mongoose.connect(process.env.URL, {
     useUnifiedTopology: true,
 }).then(() => {
     console.log("DB CONNECT")
-}).catch(() => {
-    console.log("ERROR IN CONNECTION.")
+}).catch((err) => {
+    console.log("ERROR IN CONNECTION." + err)
 })
 
 const studentMlm = require("./Routes/studentRouting")

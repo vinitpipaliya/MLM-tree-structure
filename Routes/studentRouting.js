@@ -1,10 +1,11 @@
 const express = require("express")
 const router = express.Router()
 
-const { insertData, getData } = require('../Controller/studentController')
+const { insertData, getData, getDataByQuary } = require('../Controller/studentController')
 
 router.post('/', insertData)
 router.get('/', getData)
+router.get('/quary', getDataByQuary)
 
 module.exports = router
 
