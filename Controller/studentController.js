@@ -109,7 +109,6 @@ exports.getData = async (req, res) => {
         //             return
         //         }
         //     }).exec();
-
         //     data.push(obj);
         // }
 
@@ -120,6 +119,7 @@ exports.getData = async (req, res) => {
                 mainList.push(i)
             }
         }
+        var c = 0
         var list = []
         for (let j of mainList) {
             list = []
@@ -144,6 +144,7 @@ exports.getData = async (req, res) => {
 
 
         function recursion(list) {
+            c++
             var mainList2 = list
             for (let j of mainList2) {
                 list = []
@@ -156,6 +157,7 @@ exports.getData = async (req, res) => {
                 }
             }
         }
+        console.log(c)
         return res.status(200).json({
             DATA: mainList
         })
@@ -176,48 +178,186 @@ exports.getDataByQuary = (req, res) => {
                     from: "students",
                     localField: "_id",
                     foreignField: "ref",
+                    pipeline: [{ $project: { ref: 1, name: 1 } }, {
+                        $lookup: {
+                            from: "students",
+                            localField: "_id",
+                            foreignField: "ref",
+                            as: "students",
+                            pipeline: [{ $project: { ref: 1, name: 1 } }, {
+                                $lookup: {
+                                    from: "students",
+                                    localField: "_id",
+                                    foreignField: "ref",
+                                    as: "students",
+                                    pipeline: [{ $project: { ref: 1, name: 1 } },]
+                                }
+                            }]
+                        }
+                    }],
                     as: "students",
-                    pipeline: []
                 }
             },
             {
                 $project: {
                     name: 1,
+                    ref: 1,
                     students: 1
                 }
             },
-        ]).lean(true).exec()
-        for (let i of mainList) {
-            recursive(i)
-        }
-        function recursive(list) {
-            list = studentModel.aggregate([
-                {
-                    $lookup: {
-                        from: "students",
-                        localField: "list._id",
-                        foreignField: "ref",
-                        as: "students"
-                    }
+            // {
+            //     $group: {
+            //         _id: {
+            //             _id: "$students._id"
+            //         },
+            //         name: { $first: "$students.name" },
+            //         ref: { $first: "$students.ref" },
+            //         students: { $push: "$students" }
+            //     }
+            // },
+
+        ]).
+            exec((err, data) => {
+                if (err) {
+                    return res.status(400).json({
+                        err: "Not able to aggeregate. " + err
+                    })
                 }
-            ]).exec()
-        }
-        // .exec((err, data) => {
-        //     if (err) {
-        //         return res.status(400).json({
-        //             err: "Not able to aggeregate. " + err
-        //         })
-        //     }
-        //     else {
-        //         return res.status(200).send({
-        //             DATA: data
-        //         })
-        //     }
-        // })
+                else {
+                    //Logic
+                    var list = []
+                    for (let i of data) {
+                        if (i.ref == undefined) {
+                            list.push(i)
+                        }
+                    }
+                    for (let i of list) {
+                        for (let k in i.students) {
+                            for (let j of data) {
+                                if (i.students[k]._id.equals(j._id)) {
+                                    i.students[k] = Object.assign(j)
+                                }
+                            }
+                            if (i.students[k].ref.equals(i._id)) {
+                                i.students[k] = Object.assign(i.students[k])
+                            }
+                        }
+                    }
+
+
+                    return res.status(200).send({
+                        DATA: list
+                        // DATA: data
+                    })
+                }
+            })
     }
     catch (err) {
         return res.status(400).json({
             err: "Problem :" + err
+        })
+    }
+}
+
+exports.getDataByChild = async (req, res) => {
+    try {
+        const { _id } = req.body
+        // studentModel.findOne({ _id: _id })
+        //     .exec((err, data) => {
+        //         if (err) {
+        //             console.log(err)
+        //             return res.status(200).json({
+        //                 err: err
+        //             })
+        //         }
+        //         else {
+        //             return res.status(200).json({
+        //                 DATA: data
+        //             })
+        //         }
+        //     })
+
+        // studentModel.aggregate([
+        //     {
+        //         $match: {
+        //             _id: mongoose.Types.ObjectId(_id)
+        //         }
+        //     },
+        //     {
+        //         $lookup: {
+        //             from: "students",
+        //             localField: "ref",
+        //             foreignField: "_id",
+        //             as: "students",
+        //             pipeline: [{ $project: { name: 1, ref: 1 } }]
+        //         }
+        //     }
+        // ]).exec((err, data) => {
+        //     if (err) {
+        //         return res.json({
+        //             err: err
+        //         })
+        //     }
+        //     else {
+        //         return res.json({
+        //             DATA: data
+        //         })
+        //     }
+        // })
+
+        // studentModel.findOne({ _id: _id }).lean(true).exec(async (err, data) => {
+        //     if (err) {
+        //         return res.json({
+        //             err: err
+        //         })
+        //     }
+        //     else {
+        //         console.log(data)
+        //         var list = []
+        //         var data1 = await studentModel.find().lean(true).exec()
+        //         for (let i in data1) {
+        //             if (data.ref.equals(data1[i]._id)) {
+        //                 console.log("Krishna")
+        //                 list.push(data)
+        //                 data1[i]["new key"] = list
+        //                 return res.json({
+        //                     DATA: data1[i]
+        //                 })
+        //             }
+
+        //         }
+
+        //     }
+        // })
+
+        // var docs = await studentModel.findOne({ _id: _id }).lean(true).exec()
+        // var data = await studentModel.find().lean(true).exec()
+        // var list = []
+        // for (let i in data) {
+        //     if (docs.ref.equals(data[i]._id)) {
+        //         data[i]['child'] = docs
+        //         list.push(data[i])
+        //         return res.json({
+        //             DATA: list
+        //         })
+        //     }
+        // }
+        // for (let i in data) {
+        //     if (list[0].ref.equals(data[i]._id)) {
+        //         data[i]['child'] = list[0]
+        //         list = []
+        //         list.push(data[i])
+        //         return res.json({
+        //             DATA: list
+        //         })
+        //     }
+        // }
+
+    }
+    catch (err) {
+        console.log(err)
+        return res.status(400).json({
+            err: err
         })
     }
 }
