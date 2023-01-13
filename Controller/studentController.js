@@ -119,7 +119,6 @@ exports.getData = async (req, res) => {
                 mainList.push(i)
             }
         }
-        var c = 0
         var list = []
         for (let j of mainList) {
             list = []
@@ -144,7 +143,6 @@ exports.getData = async (req, res) => {
 
 
         function recursion(list) {
-            c++
             var mainList2 = list
             for (let j of mainList2) {
                 list = []
@@ -157,7 +155,6 @@ exports.getData = async (req, res) => {
                 }
             }
         }
-        console.log(c)
         return res.status(200).json({
             DATA: mainList
         })
@@ -262,27 +259,86 @@ exports.getDataByQuary = (req, res) => {
 exports.getDataByChild = async (req, res) => {
     try {
         const { _id } = req.body
-        // studentModel.findOne({ _id: _id })
-        //     .exec((err, data) => {
-        //         if (err) {
-        //             console.log(err)
-        //             return res.status(200).json({
-        //                 err: err
-        //             })
-        //         }
-        //         else {
-        //             return res.status(200).json({
-        //                 DATA: data
-        //             })
-        //         }
-        //     })
+        studentModel.find({ _id: { $in: _id } })
+            .exec((err, data) => {
+                if (err) {
+                    console.log(err)
+                    return res.status(200).json({
+                        err: err
+                    })
+                }
+                else {
+                    return res.json({
+                        DATA: data
+                    })
+                    var list = []
+                    for (let i of data) {
+                        studentModel.aggregate([
+                            {
+                                $match: {
+                                    _id: mongoose.Types.ObjectId(i.ref.ref.ref.ref._id)
+                                },
+                            },
+                            {
+                                $lookup: {
+                                    from: "students",
+                                    localField: "_id",
+                                    foreignField: "ref",
+                                    as: "students",
+                                    pipeline: [{
+                                        $match: {
+                                            _id: i.ref.ref.ref._id
+                                        }
+                                    },
+                                    {
+                                        $lookup: {
+                                            from: "students",
+                                            localField: "_id",
+                                            foreignField: "ref",
+                                            as: "students",
+                                            pipeline: [{
+                                                $match: {
+                                                    _id: i.ref.ref._id
+                                                }
+                                            },
+                                            {
+                                                $lookup: {
+                                                    from: "students",
+                                                    localField: "_id",
+                                                    foreignField: "ref",
+                                                    as: "students",
+                                                    pipeline: [{
+                                                        $match: {
+                                                            _id: i.ref._id
+                                                        }
+                                                    },
+                                                    {
+                                                        $lookup: {
+                                                            from: "students",
+                                                            localField: "_id",
+                                                            foreignField: "ref",
+                                                            as: "students"
+                                                        }
+                                                    }]
+                                                }
+                                            }]
+                                        }
+                                    }]
+                                }
+                            },
+                        ]).exec((err, data) => {
+                            if (data) {
+                                list.push(data)
+                            }
+                        })
+                    }
+                    return res.json({
+                        LIST: list
+                    })
+                }
+            })
 
         // studentModel.aggregate([
-        //     {
-        //         $match: {
-        //             _id: mongoose.Types.ObjectId(_id)
-        //         }
-        //     },
         //     {
         //         $lookup: {
         //             from: "students",
@@ -291,9 +347,15 @@ exports.getDataByChild = async (req, res) => {
         //             as: "students",
         //             pipeline: [{ $project: { name: 1, ref: 1 } }]
         //         }
+        //     },
+        //     {
+        //         $match: {
+        //             _id: mongoose.Types.ObjectId(_id)
+        //         }
         //     }
         // ]).exec((err, data) => {
         //     if (err) {
+        //         console.log(err)
         //         return res.json({
         //             err: err
         //         })
@@ -337,9 +399,9 @@ exports.getDataByChild = async (req, res) => {
         //     if (docs.ref.equals(data[i]._id)) {
         //         data[i]['child'] = docs
         //         list.push(data[i])
-        //         return res.json({
-        //             DATA: list
-        //         })
+        //         // return res.json({
+        //         //     DATA: list
+        //         // })
         //     }
         // }
         // for (let i in data) {
@@ -352,6 +414,52 @@ exports.getDataByChild = async (req, res) => {
         //         })
         //     }
         // }
+
+        // studentModel.find({ _id: { $in: _id } }).lean(true).populate({
+        //     path: "ref",
+        //     populate: {
+        //         path: "ref"
+        //     }
+        // }).exec((err, data) => {
+        //     if (err) {
+        //         return res.json({
+        //             err: err
+        //         })
+        //     }
+        //     else {
+        //         return res.json({
+        //             DATA: data
+        //         })
+        //     }
+        // })
+        // studentModel.aggregate([
+        //     {
+        //         $match: {
+        //             _id: mongoose.Types.ObjectId(_id)
+        //         }
+        //     },
+        //     {
+        //         $lookup: {
+        //             from: "students",
+        //             localField: "ref",
+        //             foreignField: "_id",  
+        //             as: "Students",
+        //             // pipeline: [{ $match: { _id: _id } }]
+        //         }
+        //     }
+        // ]).exec((err, data) => {
+        //     if (err) {
+        //         console.log(err)
+        //         return res.json({
+        //             er: err
+        //         })
+        //     }
+        //     else {
+        //         return res.json({
+        //             DATA: data
+        //         })
+        //     }
+        // })
 
     }
     catch (err) {
